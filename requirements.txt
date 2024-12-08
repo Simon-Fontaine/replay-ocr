@@ -1,0 +1,8 @@
+ultralytics
+fastapi
+uvicorn
+paddleocr
+paddlepaddle
+supabase
+python-multipart
+python-dotenv
