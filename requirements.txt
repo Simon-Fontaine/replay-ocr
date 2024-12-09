@@ -1,8 +1,10 @@
 ultralytics
 fastapi
 uvicorn
+numpy
+opencv-python
 paddleocr
 paddlepaddle
 supabase
-python-multipart
 python-dotenv
+Levenshtein

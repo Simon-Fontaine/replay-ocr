@@ -39,4 +39,4 @@ def test_analyze_replay(
 
 if __name__ == "__main__":
     # Example usage
-    test_analyze_replay("overwatch_replay.png")
+    test_analyze_replay("images/overwatch_replay_1.png")
