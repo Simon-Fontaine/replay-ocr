@@ -25,18 +25,14 @@ COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy the YOLO11 and PaddleOCR models into the image
+COPY models/ ./models/
+
 # Copy the rest of the application code
 COPY src/ ./src/
 
-# If you have any models or data files to include, copy them here
-# For example, if best.pt is small enough:
-COPY src/best.pt ./src/
-
 # Expose the port FastAPI will run on
 EXPOSE 8080
-
-# Set environment variables for FastAPI
-ENV PORT=8080
 
 # Define the default command to run the application
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]

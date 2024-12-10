@@ -19,9 +19,6 @@ import Levenshtein
 # -----------------------------------------------------------------------------
 load_dotenv()
 
-# Removed Supabase-related environment variables
-MODEL_PATH = os.getenv("YOLO_MODEL_PATH", "src/best.pt")
-
 KNOWN_MODES = [
     "COMPETITIVE ROLE QUEUE",
     "COMPETITIVE OPEN QUEUE",
@@ -228,7 +225,13 @@ class ReplayTextExtractor:
 
     def __init__(self):
         logger.info("Initializing PaddleOCR...")
-        self.ocr = PaddleOCR(lang="en", use_angle_cls=True, show_log=False)
+        self.ocr = PaddleOCR(
+            lang="en",
+            use_angle_cls=True,
+            rec_model_dir=os.path.join("models", "rec"),
+            cls_model_dir=os.path.join("models", "cls"),
+            show_log=False,
+        )
         logger.info("PaddleOCR initialized.")
 
     def extract_text(self, image: np.ndarray, bbox: List[int]) -> str:
@@ -306,9 +309,9 @@ class MatchDataFormatter:
 class YOLOAnalyzer:
     """Handles YOLO model inference and post-processing of detections."""
 
-    def __init__(self, model_path: str, text_extractor: ReplayTextExtractor):
-        logger.info("Loading YOLO model from %s", model_path)
-        self.model = YOLO(model_path)
+    def __init__(self, text_extractor: ReplayTextExtractor):
+        logger.info("Loading YOLO model from %s", os.path.join("models", "best.pt"))
+        self.model = YOLO(os.path.join("models", "best.pt"))
         logger.info("YOLO model loaded successfully.")
         self.confidence_threshold = 0.5
         self.text_extractor = text_extractor
@@ -375,7 +378,7 @@ class YOLOAnalyzer:
 # -----------------------------------------------------------------------------
 app = FastAPI()
 text_extractor = ReplayTextExtractor()
-analyzer = YOLOAnalyzer(MODEL_PATH, text_extractor)
+analyzer = YOLOAnalyzer(text_extractor)
 
 
 @app.post("/analyze_replay")
