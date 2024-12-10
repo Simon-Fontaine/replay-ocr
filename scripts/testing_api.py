@@ -5,8 +5,9 @@ import logging
 import os
 from typing import List, Optional, Dict
 
-import requests
+import aiofiles
 from aiohttp import ClientSession, FormData
+import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -90,11 +91,13 @@ async def send_image(session: ClientSession, image_path: str, url: str) -> Dict:
 
     logger.info(f"Sending file: {image_path} to {url}")
     try:
-        # Create a FormData object
+        async with aiofiles.open(image_path, "rb") as f:
+            file_content = await f.read()
+
         form = FormData()
         form.add_field(
             "file",
-            open(image_path, "rb"),
+            file_content,
             filename=os.path.basename(image_path),
             content_type=f"image/{ext.strip('.')}",
         )
@@ -116,39 +119,6 @@ async def send_image(session: ClientSession, image_path: str, url: str) -> Dict:
     except Exception as e:
         logger.exception(f"Exception occurred while processing {image_path}: {e}")
         return {"image": image_path, "error": str(e)}
-
-
-def test_analyze_replay(
-    image_paths: List[str],
-    url: str = "http://localhost:8080/analyze_replay",
-    output_file: Optional[str] = None,
-    async_mode: bool = True,
-):
-    """
-    Send one or multiple image files to the /analyze_replay endpoint and handle responses.
-
-    Args:
-        image_paths (List[str]): List of paths to image files.
-        url (str): API endpoint URL.
-        output_file (Optional[str]): Path to save the responses as JSON.
-        async_mode (bool): Whether to send requests asynchronously.
-    """
-    if async_mode:
-        asyncio.run(async_test_analyze_replay(image_paths, url, output_file))
-    else:
-        session = setup_requests_session()
-        results = []
-        for image_path in image_paths:
-            result = send_image_sync(session, image_path, url)
-            results.append(result)
-
-        if output_file:
-            try:
-                with open(output_file, "w", encoding="utf-8") as f:
-                    json.dump(results, f, indent=2)
-                logger.info(f"Responses saved to {output_file}")
-            except Exception as e:
-                logger.error(f"Failed to write to output file: {e}")
 
 
 def send_image_sync(session: requests.Session, image_path: str, url: str) -> Dict:
@@ -190,6 +160,39 @@ def send_image_sync(session: requests.Session, image_path: str, url: str) -> Dic
     except Exception as e:
         logger.exception(f"Exception occurred while processing {image_path}: {e}")
         return {"image": image_path, "error": str(e)}
+
+
+def test_analyze_replay(
+    image_paths: List[str],
+    url: str = "http://localhost:8080/analyze_replay",
+    output_file: Optional[str] = None,
+    async_mode: bool = True,
+):
+    """
+    Send one or multiple image files to the /analyze_replay endpoint and handle responses.
+
+    Args:
+        image_paths (List[str]): List of paths to image files.
+        url (str): API endpoint URL.
+        output_file (Optional[str]): Path to save the responses as JSON.
+        async_mode (bool): Whether to send requests asynchronously.
+    """
+    if async_mode:
+        asyncio.run(async_test_analyze_replay(image_paths, url, output_file))
+    else:
+        session = setup_requests_session()
+        results = []
+        for image_path in image_paths:
+            result = send_image_sync(session, image_path, url)
+            results.append(result)
+
+        if output_file:
+            try:
+                with open(output_file, "w", encoding="utf-8") as f:
+                    json.dump(results, f, indent=2)
+                logger.info(f"Responses saved to {output_file}")
+            except Exception as e:
+                logger.error(f"Failed to write to output file: {e}")
 
 
 # -----------------------------------------------------------------------------

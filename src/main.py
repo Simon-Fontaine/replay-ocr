@@ -7,17 +7,21 @@ from typing import List, Dict, Tuple, Optional
 
 import numpy as np
 import cv2
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from dotenv import load_dotenv
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
 import uvicorn
 import Levenshtein
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from fastapi.responses import JSONResponse
+
 # -----------------------------------------------------------------------------
 # Configuration & Constants
 # -----------------------------------------------------------------------------
-load_dotenv()
 
 KNOWN_MODES = [
     "COMPETITIVE ROLE QUEUE",
@@ -381,8 +385,41 @@ text_extractor = ReplayTextExtractor()
 analyzer = YOLOAnalyzer(text_extractor)
 
 
+# -----------------------------------------------------------------------------
+# Rate Limiting Configuration
+# -----------------------------------------------------------------------------
+# Initialize Redis connection
+redis_host = os.getenv("REDIS_HOST", "localhost")
+redis_port = os.getenv("REDIS_PORT", "6379")
+redis_url = f"redis://{redis_host}:{redis_port}"
+
+limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url)
+
+# Register SlowAPI's exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Add SlowAPI middleware to FastAPI
+app.add_middleware(SlowAPIMiddleware)
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    logger.warning(f"Rate limit exceeded for IP: {get_remote_address(request)}")
+    return JSONResponse(
+        status_code=429,
+        content={"message": "Too many requests. Please try again later."},
+    )
+
+
+# -----------------------------------------------------------------------------
+# FastAPI Endpoints
+# -----------------------------------------------------------------------------
 @app.post("/analyze_replay")
-async def analyze_replay(file: UploadFile = File(...)):
+@limiter.limit("5/minute")
+@limiter.limit("15/hour")
+@limiter.limit("50/day")
+async def analyze_replay(request: Request, file: UploadFile = File(...)):
     """Analyze an uploaded Overwatch replay image."""
     start_time = datetime.now()
 

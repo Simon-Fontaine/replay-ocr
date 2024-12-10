@@ -8,3 +8,5 @@ paddlepaddle
 python-multipart
 python-dotenv
 Levenshtein
+slowapi
+redis
