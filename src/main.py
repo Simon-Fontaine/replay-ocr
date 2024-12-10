@@ -19,6 +19,8 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.responses import JSONResponse
 
+from src.config import Config
+
 # -----------------------------------------------------------------------------
 # Configuration & Constants
 # -----------------------------------------------------------------------------
@@ -388,10 +390,13 @@ analyzer = YOLOAnalyzer(text_extractor)
 # -----------------------------------------------------------------------------
 # Rate Limiting Configuration
 # -----------------------------------------------------------------------------
-# Initialize Redis connection
-redis_host = os.getenv("REDIS_HOST", "localhost")
-redis_port = os.getenv("REDIS_PORT", "6379")
-redis_url = f"redis://{redis_host}:{redis_port}"
+# Construct Redis URL with authentication if password is provided
+if Config.REDIS_PASSWORD:
+    redis_url = (
+        f"rediss://:{Config.REDIS_PASSWORD}@{Config.REDIS_HOST}:{Config.REDIS_PORT}"
+    )
+else:
+    redis_url = f"rediss://{Config.REDIS_HOST}:{Config.REDIS_PORT}"
 
 limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url)
 
@@ -421,7 +426,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 # FastAPI Endpoints
 # -----------------------------------------------------------------------------
 @app.post("/analyze_replay")
-@limiter.limit("5/minute;25/hour;100/day")
+@limiter.limit(Config.RATE_LIMITS)  # Apply all rate limits from config
 async def analyze_replay(request: Request, file: UploadFile = File(...)):
     """Analyze an uploaded Overwatch replay image."""
     start_time = datetime.now()
@@ -450,6 +455,12 @@ async def analyze_replay(request: Request, file: UploadFile = File(...)):
     except Exception as e:
         logger.exception("Error processing image:")
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "ok"}
 
 
 if __name__ == "__main__":

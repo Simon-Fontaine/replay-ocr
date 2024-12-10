@@ -6,29 +6,21 @@ services:
     container_name: replay-ocr-app
     ports:
       - "8080:8080"
-    depends_on:
-      - redis
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - RATE_LIMITS=${RATE_LIMITS}
     volumes:
       - .:/app
+      - ./src/.env:/app/src/.env # Mount the .env file for local development
     networks:
       - app-network
-
-  redis:
-    image: redis:latest
-    container_name: redis-server
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    command: ["redis-server", "--appendonly", "yes"]
-    networks:
-      - app-network
-
-volumes:
-  redis-data:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 networks:
   app-network:
