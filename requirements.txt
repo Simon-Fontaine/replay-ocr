@@ -1,12 +1,24 @@
-ultralytics
+# Core Dependencies
 fastapi
 uvicorn
 numpy
 opencv-python-headless
+
+# OCR and ML
 paddleocr
 paddlepaddle
+ultralytics
+
+# Rate Limiting and Redis
+slowapi
+redis
+
+# Utilities
 python-multipart
 python-dotenv
 Levenshtein
-slowapi
-redis
+
+# Testing and Scripts
+aiofiles
+aiohttp
+requests

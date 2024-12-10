@@ -405,10 +405,15 @@ app.add_middleware(SlowAPIMiddleware)
 
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-    logger.warning(f"Rate limit exceeded for IP: {get_remote_address(request)}")
+    user_ip = get_remote_address(request)
+    logger.warning(f"Rate limit exceeded for IP: {user_ip}. Details: {exc.detail}")
     return JSONResponse(
         status_code=429,
-        content={"message": "Too many requests. Please try again later."},
+        content={
+            "message": "Too many requests. Please try again later.",
+            "rate_limit": exc.detail,
+        },
+        headers=exc.headers,
     )
 
 
@@ -416,9 +421,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 # FastAPI Endpoints
 # -----------------------------------------------------------------------------
 @app.post("/analyze_replay")
-@limiter.limit("5/minute")
-@limiter.limit("15/hour")
-@limiter.limit("50/day")
+@limiter.limit("5/minute;25/hour;100/day")
 async def analyze_replay(request: Request, file: UploadFile = File(...)):
     """Analyze an uploaded Overwatch replay image."""
     start_time = datetime.now()

@@ -5,7 +5,7 @@ FROM python:3.10-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies, including libGL
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libglib2.0-0 \
@@ -18,17 +18,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set work directory
 WORKDIR /app
 
-# Copy requirements.txt first for better caching
-COPY requirements.txt .
-
 # Install Python dependencies
+COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy the YOLO11 and PaddleOCR models into the image
 COPY models/ ./models/
 
-# Copy the rest of the application code
+# Copy the application code
 COPY src/ ./src/
 
 # Expose the port FastAPI will run on
