@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import uuid
-import glob
 from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Optional
 
@@ -12,7 +11,6 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from dotenv import load_dotenv
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
-from supabase import create_client, Client
 import uvicorn
 import Levenshtein
 
@@ -21,10 +19,7 @@ import Levenshtein
 # -----------------------------------------------------------------------------
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://<your-id>.supabase.co")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "<your-anon-key>")
-SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "overwatch-replays")
-SUPABASE_TABLE = os.getenv("SUPABASE_TABLE", "matches")
+# Removed Supabase-related environment variables
 MODEL_PATH = os.getenv("YOLO_MODEL_PATH", "src/best.pt")
 
 KNOWN_MODES = [
@@ -226,7 +221,7 @@ def format_match_result(result_text: str) -> Tuple[Optional[str], Optional[str]]
 
 
 # -----------------------------------------------------------------------------
-# Classes for OCR, YOLO, and Database interactions
+# Classes for OCR, YOLO, and Data Formatting
 # -----------------------------------------------------------------------------
 class ReplayTextExtractor:
     """Handles text extraction from images using OCR."""
@@ -321,7 +316,7 @@ class YOLOAnalyzer:
     def process_image(self, image: np.ndarray, run_id: str) -> Tuple[List[Dict], str]:
         """Run YOLO inference and process results."""
         logger.info("Running YOLO inference on the provided image.")
-        results = self.model(image, save=True)
+        results = self.model(image)
         if not results or len(results) == 0:
             logger.info("No results from YOLO model.")
             return [], ""
@@ -375,51 +370,12 @@ class YOLOAnalyzer:
         return formatted_matches, str(result.save_dir)
 
 
-class DatabaseClient:
-    """Handles Supabase database operations."""
-
-    def __init__(self, url: str, anon_key: str, bucket: str, table: str):
-        self.client: Client = create_client(url, anon_key)
-        self.bucket = bucket
-        self.table = table
-
-    def upload_image(self, local_path: str, remote_name: str) -> None:
-        """Upload an image to Supabase storage."""
-        try:
-            with open(local_path, "rb") as img_file:
-                res = self.client.storage.from_(self.bucket).upload(
-                    remote_name, img_file
-                )
-                if hasattr(res, "path") and res.path:
-                    logger.info("Uploaded image to storage: %s", res.path)
-                else:
-                    logger.warning("Unexpected upload response: %s", res)
-        except Exception as e:
-            logger.error("Failed to upload image: %s", e)
-
-    def insert_matches(self, matches: List[Dict]) -> None:
-        """Insert match records into the Supabase table."""
-        if not matches:
-            return
-        try:
-            res = self.client.table(self.table).insert(matches).execute()
-            if res.data:
-                logger.info("Inserted %d matches into table.", len(res.data))
-            else:
-                logger.warning("Unexpected insert response: %s", res)
-        except Exception as e:
-            logger.error("Error inserting matches: %s", e)
-
-
 # -----------------------------------------------------------------------------
 # FastAPI Application
 # -----------------------------------------------------------------------------
 app = FastAPI()
 text_extractor = ReplayTextExtractor()
 analyzer = YOLOAnalyzer(MODEL_PATH, text_extractor)
-db_client = DatabaseClient(
-    SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_BUCKET, SUPABASE_TABLE
-)
 
 
 @app.post("/analyze_replay")
@@ -441,27 +397,12 @@ async def analyze_replay(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Invalid image file")
 
         run_id = str(uuid.uuid4())
-        matches, save_dir = analyzer.process_image(image, run_id)
-
-        # Find annotated image and upload it
-        annotated_image_path = None
-        for ext in ["*.png", "*.jpg", "*.jpeg"]:
-            found = glob.glob(os.path.join(save_dir, ext))
-            if found:
-                annotated_image_path = found[0]
-                break
-
-        if annotated_image_path:
-            remote_name = f"{run_id}_{os.path.basename(annotated_image_path)}"
-            db_client.upload_image(annotated_image_path, remote_name)
-
-        # Insert matches into DB
-        db_client.insert_matches(matches)
+        matches, _ = analyzer.process_image(image, run_id)
 
         elapsed_time = (datetime.now() - start_time).total_seconds()
         logger.info("Processing complete in %.2f seconds.", elapsed_time)
 
-        return matches
+        return {"matches": matches}
 
     except Exception as e:
         logger.exception("Error processing image:")
@@ -469,4 +410,4 @@ async def analyze_replay(file: UploadFile = File(...)):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    uvicorn.run(app, host="0.0.0.0", port=8080, log_level="info")

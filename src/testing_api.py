@@ -3,7 +3,8 @@ import json
 
 
 def test_analyze_replay(
-    image_path: str, url: str = "http://localhost:8080/analyze_replay"
+    image_path: str,
+    url: str = "http://localhost:8080/analyze_replay",
 ):
     """
     Send an image file to the /analyze_replay endpoint and print the response.
@@ -39,4 +40,5 @@ def test_analyze_replay(
 
 if __name__ == "__main__":
     # Example usage
-    test_analyze_replay("images/overwatch_replay_3.png")
+    # test_analyze_replay("images/overwatch_replay_3.png")
+    test_analyze_replay("images/overwatch_not_replay_1.png")
