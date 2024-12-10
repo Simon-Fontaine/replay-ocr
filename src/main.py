@@ -96,73 +96,49 @@ def sanitize_replay_code(code: str) -> str:
     return re.sub(r"[^A-Z0-9]", "", code)
 
 
-def fix_time_format(time_str: str) -> str:
+def parse_time_ago(time_ago: str) -> Optional[str]:
     """
-    Attempts to fix the time format.
-    E.g., convert `1002` -> `10:02`.
-    Replace '.' or ';' with ':'.
-    """
-    time_str = re.sub(r"[.;]", ":", time_str.strip())
-    if ":" not in time_str and len(time_str) == 4 and time_str.isdigit():
-        hh, mm = time_str[:2], time_str[2:]
-        if 0 <= int(hh) < 24 and 0 <= int(mm) < 60:
-            time_str = f"{hh}:{mm}"
-    return time_str
-
-
-def parse_duration_to_datetime(time_ago: str, duration: str) -> str:
-    """
-    Convert 'time_ago' + 'duration' into an ISO datetime string.
+    Convert 'time_ago' into an ISO datetime string.
 
     Supported formats for `time_ago`:
-    - "HH:MM" (e.g., "10:02" means 10 hours and 2 minutes ago)
-    - "<X> hour(s) ago", "<X> minute(s) ago", "<X> day(s) ago"
-    - If parsing fails, we return current time in ISO format.
+    - "<X> day(s) ago"
+    - "<X> hour(s) ago"
+    - "<X> minute(s) ago"
 
-    The `duration` can add extra days if it's like "1 DAY AGO".
+    This function handles cases with or without spaces between the number and the unit,
+    such as "2days ago" or "2 days ago".
+
+    Returns:
+        ISO formatted datetime string if parsing is successful, else None.
     """
     now = datetime.now()
-
-    # Extract additional days from duration if present (e.g. "1 DAY AGO" => days_ago = 1)
-    days_ago = 0
-    day_match = re.search(r"(\d+)\s+DAY", duration.upper())
-    if day_match:
-        days_ago = int(day_match.group(1))
-
-    # Initialize offsets
-    add_days = 0
-    add_hours = 0
-    add_minutes = 0
-
     ta = time_ago.strip().lower()
 
-    # Check if time_ago matches HH:MM format
-    hhmm_match = re.match(r"(\d{1,2}):(\d{2})", ta)
-    if hhmm_match:
-        # Interpreted as HH:MM ago
-        add_hours = int(hhmm_match.group(1))
-        add_minutes = int(hhmm_match.group(2))
+    # Insert a space between digits and letters if missing (e.g., "2days ago" -> "2 days ago")
+    ta = re.sub(r"(\d+)([a-z]+)", r"\1 \2", ta)
+
+    # Regular expression to match patterns like "2 days ago", "1 hour ago", "30 minutes ago"
+    pattern = r"^(?P<value>\d+)\s*(?P<unit>day|days|hour|hours|minute|minutes)\s+ago$"
+    match = re.match(pattern, ta)
+
+    if not match:
+        logger.warning("Unrecognized time_ago format: '%s'. Unable to parse.", time_ago)
+        return None
+
+    value = int(match.group("value"))
+    unit = match.group("unit")
+
+    if unit.startswith("day"):
+        delta = timedelta(days=value)
+    elif unit.startswith("hour"):
+        delta = timedelta(hours=value)
+    elif unit.startswith("minute"):
+        delta = timedelta(minutes=value)
     else:
-        # Try natural language durations: "<number> <unit> ago"
-        nl_match = re.match(r"(\d+)\s*(day|days|hour|hours|minute|minutes)\s*ago", ta)
-        if nl_match:
-            quantity = int(nl_match.group(1))
-            unit = nl_match.group(2)
+        logger.warning("Unrecognized time unit in time_ago: '%s'.", unit)
+        return None
 
-            if "day" in unit:
-                add_days = quantity
-            elif "hour" in unit:
-                add_hours = quantity
-            elif "minute" in unit:
-                add_minutes = quantity
-        else:
-            # If we don't recognize the format, just return now
-            return now.isoformat()
-
-    # Combine durations: days_ago from duration + add_days from time_ago
-    total_days = days_ago + add_days
-
-    final_time = now - timedelta(days=total_days, hours=add_hours, minutes=add_minutes)
+    final_time = now - delta
     return final_time.isoformat()
 
 
@@ -307,13 +283,16 @@ class MatchDataFormatter:
                 replay_code = sanitize_replay_code(row.get("replay_code", ""))
 
                 raw_time_ago = row.get("time_ago", "").strip("- ").strip()
-                time_ago = fix_time_format(raw_time_ago)
-                duration = row.get("time_duration", "").strip("- ").strip()
+                final_time = parse_time_ago(raw_time_ago)
 
                 result_text = row.get("result", "")
                 score_text = row.get("score", "")
 
-                final_time = parse_duration_to_datetime(time_ago, duration)
+                if final_time is None:
+                    logger.warning(
+                        "Failed to parse time_ago: '%s'. Skipping match.", raw_time_ago
+                    )
+                    continue  # Skip this match if time parsing failed
 
                 match_dict = {
                     "run_id": run_id,
@@ -321,7 +300,6 @@ class MatchDataFormatter:
                     "mode": mode,
                     "replay_code": replay_code,
                     "time_ago": final_time,
-                    "duration": duration,
                     "result": result_text,
                     "score": score_text,
                 }
@@ -378,7 +356,7 @@ class YOLOAnalyzer:
             bbox = [int(x1), int(y1), int(x2), int(y2)]
             extracted_text = self.text_extractor.extract_text(image, bbox)
 
-            row_index = int(y1) // 73
+            row_index = int(y1) // 73  # Assuming each row is 73 pixels high
             if row_index not in rows:
                 rows[row_index] = {}
 
