@@ -3,7 +3,7 @@ import json
 
 
 def test_analyze_replay(
-    image_path: str, url: str = "http://localhost:8000/analyze_replay"
+    image_path: str, url: str = "http://localhost:8080/analyze_replay"
 ):
     """
     Send an image file to the /analyze_replay endpoint and print the response.
