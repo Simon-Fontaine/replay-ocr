@@ -17,8 +17,8 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.responses import JSONResponse
 
-from config import Config
-from model_manager import ModelManager
+from src.config import Config
+from src.model_manager import ModelManager
 
 # -----------------------------------------------------------------------------
 # Configuration & Constants
