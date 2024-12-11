@@ -13,19 +13,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     libxrender-dev \
     libgl1-mesa-glx \
+    libturbojpeg \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Set work directory
+# Set the working directory
 WORKDIR /app
 
-# Install Python dependencies
+# Copy only necessary files
 COPY requirements.txt .
+COPY src/ ./src/
+COPY models/ ./models/
+
+# Install Python dependencies
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
-
-# Copy the application code
-COPY models/ ./models/
-COPY src/ ./src/
 
 # Expose the port FastAPI will run on
 EXPOSE 8080
