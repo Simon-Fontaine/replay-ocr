@@ -3,7 +3,7 @@ import logging
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger("uvicorn")
 
 
 class ModelManager:
