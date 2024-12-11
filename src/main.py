@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 import uuid
 from datetime import datetime, timedelta
@@ -20,6 +19,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from fastapi.responses import JSONResponse
 
 from src.config import Config
+from src.model_manager import ModelManager
 
 # -----------------------------------------------------------------------------
 # Configuration & Constants
@@ -230,25 +230,16 @@ class ReplayTextExtractor:
     """Handles text extraction from images using OCR."""
 
     def __init__(self):
-        logger.info("Initializing PaddleOCR...")
-        self.ocr = PaddleOCR(
-            lang="en",
-            use_angle_cls=True,
-            rec_model_dir=os.path.join("models", "rec"),
-            cls_model_dir=os.path.join("models", "cls"),
-            det_model_dir=os.path.join("models", "det"),
-            show_log=False,
-        )
-        logger.info("PaddleOCR initialized.")
+        self._model_manager = ModelManager()
 
     def extract_text(self, image: np.ndarray, bbox: List[int]) -> str:
         """Extract text from a given bounding box in the image."""
         x1, y1, x2, y2 = bbox
         roi = image[y1:y2, x1:x2]
         try:
-            result = self.ocr.ocr(roi, cls=True)
+            result = self._model_manager.ocr.ocr(roi, cls=True)
         except Exception as e:
-            logger.warning("OCR failed on ROI: %s", e)
+            logger.warning(f"OCR failed on ROI: {e}")
             return ""
 
         if (
@@ -317,16 +308,14 @@ class YOLOAnalyzer:
     """Handles YOLO model inference and post-processing of detections."""
 
     def __init__(self, text_extractor: ReplayTextExtractor):
-        logger.info("Loading YOLO model from %s", os.path.join("models", "best.pt"))
-        self.model = YOLO(os.path.join("models", "best.pt"))
-        logger.info("YOLO model loaded successfully.")
+        self._model_manager = ModelManager()
         self.confidence_threshold = 0.5
         self.text_extractor = text_extractor
 
     def process_image(self, image: np.ndarray, run_id: str) -> Tuple[List[Dict], str]:
         """Run YOLO inference and process results."""
         logger.info("Running YOLO inference on the provided image.")
-        results = self.model(image)
+        results = self._model_manager.yolo(image)
         if not results or len(results) == 0:
             logger.info("No results from YOLO model.")
             return [], ""
