@@ -396,15 +396,7 @@ analyzer = YOLOAnalyzer(text_extractor, model_manager)
 # -----------------------------------------------------------------------------
 # Rate Limiting Configuration
 # -----------------------------------------------------------------------------
-# Construct Redis URL with authentication if password is provided
-if Config.REDIS_PASSWORD:
-    redis_url = (
-        f"rediss://:{Config.REDIS_PASSWORD}@{Config.REDIS_HOST}:{Config.REDIS_PORT}"
-    )
-else:
-    redis_url = f"rediss://{Config.REDIS_HOST}:{Config.REDIS_PORT}"
-
-limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url)
+limiter = Limiter(key_func=get_remote_address, storage_uri=Config.REDIS_URL)
 
 # Register SlowAPI's exception handler
 app.state.limiter = limiter
