@@ -23,10 +23,8 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the YOLO11 and PaddleOCR models into the image
-COPY models/ ./models/
-
 # Copy the application code
+COPY models/ ./models/
 COPY src/ ./src/
 
 # Expose the port FastAPI will run on
