@@ -1,46 +1,18 @@
 [
   {
     "image": "images/overwatch_replay_0.png",
-    "error": "Status 429: {\"message\":\"Too many requests. Please try again later.\",\"rate_limit\":\"5 per 1 minute\"}"
+    "error": "[WinError 64] The specified network name is no longer available"
   },
   {
     "image": "images/overwatch_replay_1.png",
-    "error": "Status 429: {\"message\":\"Too many requests. Please try again later.\",\"rate_limit\":\"5 per 1 minute\"}"
+    "error": "[WinError 64] The specified network name is no longer available"
   },
   {
     "image": "images/overwatch_replay_2.png",
-    "matches": [
-      {
-        "run_id": "7f39f22c-2a11-49ff-bc0d-414ea2db1643",
-        "map": "Throne of Anubis",
-        "mode": "UNRANKED",
-        "replay_code": "J3HAYG",
-        "time_ago": "2024-12-10T11:25:09.987266",
-        "result": "VICTORY!",
-        "score": "5-3"
-      },
-      {
-        "run_id": "7f39f22c-2a11-49ff-bc0d-414ea2db1643",
-        "map": "Runasapi",
-        "mode": "UNRANKED",
-        "replay_code": "0X54KN",
-        "time_ago": "2024-12-09T11:25:09.987266",
-        "result": "DEFEAT!",
-        "score": "0-1"
-      },
-      {
-        "run_id": "7f39f22c-2a11-49ff-bc0d-414ea2db1643",
-        "map": "Antarctic Peninsula",
-        "mode": "UNRANKED",
-        "replay_code": "EN40J7",
-        "time_ago": "2024-12-09T11:25:09.987266",
-        "result": null,
-        "score": null
-      }
-    ]
+    "error": "[WinError 64] The specified network name is no longer available"
   },
   {
     "image": "images/overwatch_replay_3.png",
-    "error": "Status 429: {\"message\":\"Too many requests. Please try again later.\",\"rate_limit\":\"5 per 1 minute\"}"
+    "error": "[WinError 64] The specified network name is no longer available"
   }
 ]

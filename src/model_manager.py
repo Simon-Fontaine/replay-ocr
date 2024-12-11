@@ -5,7 +5,6 @@ import numpy as np
 from typing import Optional
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
-from typing import List, Dict, Tuple
 
 logger = logging.getLogger("uvicorn.error")
 

@@ -7,8 +7,6 @@ from typing import List, Dict, Tuple, Optional
 import numpy as np
 import cv2
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
-from ultralytics import YOLO
-from paddleocr import PaddleOCR
 import uvicorn
 import Levenshtein
 
