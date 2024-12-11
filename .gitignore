@@ -164,3 +164,4 @@ cython_debug/
 # YOLO11 best.pt and PaddleOCR models
 models/
 runs/
+results.json
