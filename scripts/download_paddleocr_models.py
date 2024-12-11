@@ -11,6 +11,7 @@ def download_models(model_dir: str = "models"):
         use_angle_cls=True,
         rec_model_dir=os.path.join(model_dir, "rec"),
         cls_model_dir=os.path.join(model_dir, "cls"),
+        det_model_dir=os.path.join(model_dir, "det"),
         show_log=False,
     )
     print(f"PaddleOCR models downloaded to '{model_dir}'.")

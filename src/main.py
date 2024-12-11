@@ -236,6 +236,7 @@ class ReplayTextExtractor:
             use_angle_cls=True,
             rec_model_dir=os.path.join("models", "rec"),
             cls_model_dir=os.path.join("models", "cls"),
+            det_model_dir=os.path.join("models", "det"),
             show_log=False,
         )
         logger.info("PaddleOCR initialized.")
