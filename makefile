@@ -11,24 +11,26 @@ help:
 	@echo "Available commands:"
 	@echo "  make build   - Build Docker image"
 	@echo "  make push    - Push image to Docker Hub"
-	@echo "  make deploy  - Build, push and deploy to Railway"
+	@echo "  make deploy  - Build, push, and deploy to Railway"
 	@echo "  make clean   - Remove local Docker image"
 
 # Build
 build:
 	@echo "Building Docker image $(DOCKER_FULL_NAME)..."
-	docker build -t $(DOCKER_FULL_NAME) .
-#	docker build --no-cache -t $(DOCKER_FULL_NAME) .
+	docker build --no-cache -t $(DOCKER_FULL_NAME) -f Dockerfile .
+	@echo "Build complete!"
 
 # Push
 push:
 	@echo "Pushing $(DOCKER_FULL_NAME) to Docker Hub..."
 	docker push $(DOCKER_FULL_NAME)
+	@echo "Push complete!"
 
 # Deploy
 deploy: build push
 	@echo "Deploying to Railway..."
-	railway run --railway-env .env railway.toml
+	railway up
+	@echo "Deploy complete!"
 
 # Clean
 clean:
