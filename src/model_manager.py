@@ -1,6 +1,5 @@
 import os
 import logging
-from typing import Optional
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
 
@@ -29,9 +28,7 @@ class ModelManager:
 
     @property
     def ocr(self) -> PaddleOCR:
-        """
-        Lazy loading for PaddleOCR model.
-        """
+        """Lazy loading for PaddleOCR model."""
         if self._ocr is None:
             logger.info("Initializing PaddleOCR model...")
             try:
@@ -51,9 +48,7 @@ class ModelManager:
 
     @property
     def yolo(self) -> YOLO:
-        """
-        Lazy loading for YOLO model.
-        """
+        """Lazy loading for YOLO model."""
         if self._yolo is None:
             logger.info("Loading YOLO model...")
             try:

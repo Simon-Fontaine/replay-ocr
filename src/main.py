@@ -313,10 +313,13 @@ class YOLOAnalyzer:
         self.confidence_threshold = 0.5
         self.text_extractor = text_extractor
 
-    def process_image(self, image: np.ndarray, run_id: str) -> Tuple[List[Dict], str]:
+    async def process_image(
+        self, image: np.ndarray, run_id: str
+    ) -> Tuple[List[Dict], str]:
         """Run YOLO inference and process results."""
         logger.info("Running YOLO inference on the provided image.")
         results = self._model_manager.yolo(image)
+
         if not results or len(results) == 0:
             logger.info("No results from YOLO model.")
             return [], ""
@@ -429,7 +432,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 # FastAPI Endpoints
 # -----------------------------------------------------------------------------
 @app.post("/analyze_replay")
-@limiter.limit(Config.RATE_LIMITS)  # Apply all rate limits from config
+@limiter.limit(Config.RATE_LIMITS)
 async def analyze_replay(request: Request, file: UploadFile = File(...)):
     """Analyze an uploaded Overwatch replay image."""
     start_time = datetime.now()
@@ -448,7 +451,7 @@ async def analyze_replay(request: Request, file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Invalid image file")
 
         run_id = str(uuid.uuid4())
-        matches, _ = analyzer.process_image(image, run_id)
+        matches, _ = await analyzer.process_image(image, run_id)
 
         elapsed_time = (datetime.now() - start_time).total_seconds()
         logger.info("Processing complete in %.2f seconds.", elapsed_time)
