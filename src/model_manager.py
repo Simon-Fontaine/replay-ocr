@@ -1,7 +1,5 @@
-import re
 import os
 import logging
-import numpy as np
 from typing import Optional
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
@@ -14,21 +12,20 @@ class ModelManager:
     Singleton class to manage ML model instances with lazy loading.
     """
 
-    _instance: Optional["ModelManager"] = None
-    _ocr: Optional[PaddleOCR] = None
-    _yolo: Optional[YOLO] = None
-    _initialized: bool = False
+    _instance = None
+    _ocr = None
+    _yolo = None
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            cls._instance = super(ModelManager, cls).__new__(cls)
+            cls._instance._initialized = False
         return cls._instance
 
     def __init__(self):
-        # Only run initialization once
         if not self._initialized:
-            self._initialized = True
             logger.info("Initializing ModelManager singleton")
+            self._initialized = True
 
     @property
     def ocr(self) -> PaddleOCR:
@@ -69,3 +66,9 @@ class ModelManager:
                 logger.error(f"Failed to load YOLO model: {e}")
                 raise
         return self._yolo
+
+    def cleanup(self):
+        """Cleanup model resources."""
+        logger.info("Cleaning up model resources...")
+        self._ocr = None
+        self._yolo = None

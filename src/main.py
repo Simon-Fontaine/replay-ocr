@@ -3,6 +3,7 @@ import re
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Optional
+from contextlib import asynccontextmanager
 
 import numpy as np
 import cv2
@@ -16,8 +17,8 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.responses import JSONResponse
 
-from src.config import Config
-from src.model_manager import ModelManager
+from config import Config
+from model_manager import ModelManager
 
 # -----------------------------------------------------------------------------
 # Configuration & Constants
@@ -227,8 +228,8 @@ def format_match_result(result_text: str) -> Tuple[Optional[str], Optional[str]]
 class ReplayTextExtractor:
     """Handles text extraction from images using OCR."""
 
-    def __init__(self):
-        self._model_manager = ModelManager()
+    def __init__(self, model_manager: ModelManager):
+        self._model_manager = model_manager
 
     def extract_text(self, image: np.ndarray, bbox: List[int]) -> str:
         """Extract text from a given bounding box in the image."""
@@ -305,8 +306,10 @@ class MatchDataFormatter:
 class YOLOAnalyzer:
     """Handles YOLO model inference and post-processing of detections."""
 
-    def __init__(self, text_extractor: ReplayTextExtractor):
-        self._model_manager = ModelManager()
+    def __init__(
+        self, text_extractor: ReplayTextExtractor, model_manager: ModelManager
+    ):
+        self._model_manager = model_manager
         self.confidence_threshold = 0.5
         self.text_extractor = text_extractor
 
@@ -370,9 +373,21 @@ class YOLOAnalyzer:
 # -----------------------------------------------------------------------------
 # FastAPI Application
 # -----------------------------------------------------------------------------
-app = FastAPI()
-text_extractor = ReplayTextExtractor()
-analyzer = YOLOAnalyzer(text_extractor)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan and cleanup."""
+    # Startup
+    logger.info("Application starting up...")
+    yield
+    # Shutdown
+    logger.info("Application shutting down...")
+    model_manager.cleanup()
+
+
+model_manager = ModelManager()
+app = FastAPI(lifespan=lifespan)
+text_extractor = ReplayTextExtractor(model_manager)
+analyzer = YOLOAnalyzer(text_extractor, model_manager)
 
 
 # -----------------------------------------------------------------------------
